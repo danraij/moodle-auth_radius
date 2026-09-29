@@ -1,0 +1,1 @@
+This plugin used to be part of Moodle core and hasn't been updated in many years. Current goal is to update it and ensure it's working properly for Moodle 4.5 and future LTS releases.

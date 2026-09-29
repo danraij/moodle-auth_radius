@@ -23,6 +23,7 @@
  */
 
 $string['auth_radiusdescription'] = 'This method uses a <a href="http://en.wikipedia.org/wiki/RADIUS">RADIUS</a> server to check whether a given username and password is valid.';
+$string['auth_radius_noextension'] = 'The PHP RADIUS extension is not installed or enabled. RADIUS authentication will not work until it is available.';
 $string['auth_radiushost'] = 'Address of the RADIUS server';
 $string['auth_radiushost_key'] = 'Host';
 $string['auth_radiuschangepasswordurl_key'] = 'Password-change URL';

@@ -32,7 +32,8 @@ any other GPL-like (LGPL, GPL2) License.
     $Id$
 */
 
-require_once 'PEAR.php';
+global $CFG;
+require_once($CFG->libdir . '/pear/PEAR.php');
 
 /**
 * Classes for generating packets for various CHAP Protocols:
@@ -211,7 +212,7 @@ class Crypt_CHAP_MSv1 extends Crypt_CHAP
         $uni = '';
         $str = (string) $str;
         for ($i = 0; $i < strlen($str); $i++) {
-            $a = ord($str{$i}) << 8;
+            $a = ord($str[$i]) << 8;
             $uni .= sprintf("%X", $a);
         }
         return pack('H*', $uni);
@@ -271,25 +272,33 @@ class Crypt_CHAP_MSv1 extends Crypt_CHAP
             $hash .= "\0";
         }
 
-        $td = mcrypt_module_open(MCRYPT_DES, '', MCRYPT_MODE_ECB, '');
-        $iv = mcrypt_create_iv (mcrypt_enc_get_iv_size($td), MCRYPT_RAND);
         $key = $this->_desAddParity(substr($hash, 0, 7));
-        mcrypt_generic_init($td, $key, $iv);
-        $resp1 = mcrypt_generic($td, $this->challenge);
-        mcrypt_generic_deinit($td);
+        $resp1 = $this->_desEncrypt($key, $this->challenge);
 
         $key = $this->_desAddParity(substr($hash, 7, 7));
-        mcrypt_generic_init($td, $key, $iv);
-        $resp2 = mcrypt_generic($td, $this->challenge);
-        mcrypt_generic_deinit($td);
+        $resp2 = $this->_desEncrypt($key, $this->challenge);
 
         $key = $this->_desAddParity(substr($hash, 14, 7));
-        mcrypt_generic_init($td, $key, $iv);
-        $resp3 = mcrypt_generic($td, $this->challenge);
-        mcrypt_generic_deinit($td);
-        mcrypt_module_close($td);
+        $resp3 = $this->_desEncrypt($key, $this->challenge);
 
         return $resp1 . $resp2 . $resp3;
+    }
+
+    /**
+     * Encrypts one DES block using 3DES with the same key for each pass.
+     *
+     * @param string $key Eight-byte DES key.
+     * @param string $data Eight-byte input block.
+     * @return string
+     */
+    function _desEncrypt($key, $data)
+    {
+        $result = openssl_encrypt($data, 'des-ede3-ecb', $key . $key . $key,
+                OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING);
+        if ($result === false) {
+            throw new RuntimeException('OpenSSL DES encryption is unavailable');
+        }
+        return $result;
     }
 
     /**
@@ -319,13 +328,7 @@ class Crypt_CHAP_MSv1 extends Crypt_CHAP
     function _desHash($plain)
     {
         $key = $this->_desAddParity($plain);
-        $td = mcrypt_module_open(MCRYPT_DES, '', MCRYPT_MODE_ECB, '');
-        $iv = mcrypt_create_iv (mcrypt_enc_get_iv_size($td), MCRYPT_RAND);
-        mcrypt_generic_init($td, $key, $iv);
-        $hash = mcrypt_generic($td, 'KGS!@#$%');
-        mcrypt_generic_deinit($td);
-        mcrypt_module_close($td);
-        return $hash;
+        return $this->_desEncrypt($key, 'KGS!@#$%');
     }
 
     /**
@@ -357,7 +360,7 @@ class Crypt_CHAP_MSv1 extends Crypt_CHAP
 
         $bin = '';
         for ($i = 0; $i < strlen($key); $i++) {
-            $bin .= sprintf('%08s', decbin(ord($key{$i})));
+            $bin .= sprintf('%08s', decbin(ord($key[$i])));
         }
 
         $str1 = explode('-', substr(chunk_split($bin, 7, '-'), 0, -1));

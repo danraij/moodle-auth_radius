@@ -33,7 +33,8 @@ any other GPL-like (LGPL, GPL2) License.
     $Id$
 */
 
-require_once('PEAR.php');
+global $CFG;
+require_once($CFG->libdir . '/pear/PEAR.php');
 
 /**
  * Client implementation of RADIUS. This are wrapper classes for
